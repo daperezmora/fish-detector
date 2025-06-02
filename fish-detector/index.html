@@ -79,7 +79,10 @@
       const prediction = await model.predict(webcam.canvas);
       prediction.sort((a, b) => b.probability - a.probability);
       const top = prediction[0];
-      labelContainer.innerText = `${top.className} 🐟 (${(top.probability * 100).toFixed(1)}%)`;
+      labelContainer.innerText = prediction
+        .map(p => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+        .join("\n");
+
     }
 
     window.addEventListener('load', () => {
