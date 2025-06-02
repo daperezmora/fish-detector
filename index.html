@@ -48,43 +48,60 @@
   <div id="label-container">Loading model...</div>
 
   <script type="text/javascript">
-    const URL = "./my_model/"; // Put your model folder here
-
+    const URL = "./my_model/";
     let model, webcam, labelContainer, maxPredictions;
-
+  
     async function init() {
       const modelURL = URL + "model.json";
       const metadataURL = URL + "metadata.json";
-
-      model = await tmImage.load(modelURL, metadataURL);
-      maxPredictions = model.getTotalClasses();
-
-      webcam = new tmImage.Webcam(200, 200, true); // width, height, flip
-      await webcam.setup({ facingMode: "environment" }); // use back camera
-      await webcam.play();
-      window.requestAnimationFrame(loop);
-
-      document.getElementById("webcam-container").appendChild(webcam.canvas);
-
-      labelContainer = document.getElementById("label-container");
+  
+      try {
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+        console.log("✅ Model loaded");
+  
+        webcam = new tmImage.Webcam(200, 200, true);
+  
+        await webcam.setup({ facingMode: "environment" })
+          .then(() => {
+            console.log("📷 Webcam permission granted");
+          })
+          .catch(err => {
+            console.error("🚨 Webcam setup failed:", err);
+            document.getElementById("label-container").innerText = "Webcam permission denied or failed.";
+          });
+  
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+  
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+  
+      } catch (e) {
+        console.error("🔥 Init failed:", e);
+        document.getElementById("label-container").innerText = "Error loading model or webcam.";
+      }
     }
-
+  
     async function loop() {
       webcam.update();
       await predict();
       window.requestAnimationFrame(loop);
     }
-
+  
     async function predict() {
       const prediction = await model.predict(webcam.canvas);
       prediction.sort((a, b) => b.probability - a.probability);
-      const top = prediction[0];
-      labelContainer.innerText = `${top.className} 🐟 (${(top.probability * 100).toFixed(1)}%)`;
+      labelContainer.innerText = prediction
+        .map(p => `${p.className}: ${(p.probability * 100).toFixed(1)}%`)
+        .join("\n");
     }
-
+  
     window.addEventListener('load', () => {
+      console.log("🔁 Page loaded, initializing...");
       init();
     });
   </script>
+
 </body>
 </html>
